@@ -32,12 +32,6 @@ from .quditcircuit import QuditCircuit
 from .analogcircuit import AnalogCircuit
 from .circuit import Circuit, expectation
 from .u1circuit import U1Circuit
-
-try:
-    from .symbolcircuit import SymbolCircuit
-except (ImportError, ModuleNotFoundError):
-    pass
-
 from .mpscircuit import MPSCircuit
 from .densitymatrix import DMCircuit as DMCircuit_reference
 from .densitymatrix import DMCircuit2
@@ -100,14 +94,14 @@ def __dir__() -> List[str]:
 
 
 try:
-    from qiskit import QuantumCircuit
+    import qiskit
 
-    QuantumCircuit.cnot = QuantumCircuit.cx
-    QuantumCircuit.toffoli = QuantumCircuit.ccx
-    QuantumCircuit.fredkin = QuantumCircuit.cswap
+    qiskit.QuantumCircuit.cnot = qiskit.QuantumCircuit.cx
+    qiskit.QuantumCircuit.toffoli = qiskit.QuantumCircuit.ccx
+    qiskit.QuantumCircuit.fredkin = qiskit.QuantumCircuit.cswap
 
     # amazing qiskit 1.0 nonsense...
-except (ModuleNotFoundError, ImportError):
+except ModuleNotFoundError:
     pass
 
 # just for fun

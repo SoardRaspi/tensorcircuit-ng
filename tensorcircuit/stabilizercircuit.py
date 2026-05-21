@@ -51,7 +51,6 @@ class StabilizerCircuit(AbstractCircuit):
         self.inputs = inputs
         self.tableau_inputs = tableau_inputs
         self._extra_qir: List[Dict[str, Any]] = []
-        self._measure_counter = 0
         self.current_sim = stim.TableauSimulator()
 
         self.circuit_param = {

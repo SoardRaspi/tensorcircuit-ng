@@ -81,15 +81,13 @@ class ExtendedBackend:
 
     def lobpcg_standard(
         self: Any,
-        a: Union[Tensor, Callable[[Tensor], Tensor]],
+        a: Tensor,
         x0: Tensor,
         m: int = 100,
         tol: Optional[Union[Tensor, float]] = None,
-    ) -> Tuple[Tensor, Tensor, int]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         Compute top-k eigenpairs via LOBPCG for Hermitian matrices.
-        k is determined by the number of columns in x0.
-        By default, this method finds the largest algebraic eigenvalues.
 
         :param a: linear operator or matrix tensor
         :type a: Tensor
@@ -100,36 +98,11 @@ class ExtendedBackend:
         :param tol: convergence tolerance
         :type tol: Optional[Union[Tensor, float]]
         :return: (eigenvalues, eigenvectors, iterations)
-        :rtype: Tuple[Tensor, Tensor, int]
+        :rtype: Tuple[Tensor, Tensor, Tensor]
         """
         raise NotImplementedError(
             "Backend '{}' has not implemented `lobpcg_standard`.".format(self.name)
         )
-
-    def lobpcg(
-        self: Any,
-        a: Union[Tensor, Callable[[Tensor], Tensor]],
-        x0: Tensor,
-        m: int = 100,
-        tol: Optional[Union[Tensor, float]] = None,
-    ) -> Tuple[Tensor, Tensor, int]:
-        """
-        Compute top-k eigenpairs via LOBPCG for Hermitian matrices.
-        k is determined by the number of columns in x0.
-        By default, this method finds the largest algebraic eigenvalues.
-
-        :param a: linear operator or matrix tensor
-        :type a: Tensor
-        :param x0: initial guess matrix of shape (n, k)
-        :type x0: Tensor
-        :param m: maximum iterations
-        :type m: int
-        :param tol: convergence tolerance
-        :type tol: Optional[Union[Tensor, float]]
-        :return: (eigenvalues, eigenvectors, iterations)
-        :rtype: Tuple[Tensor, Tensor, int]
-        """
-        return self.lobpcg_standard(a, x0, m, tol)  # type: ignore
 
     def sin(self: Any, a: Tensor) -> Tensor:
         """

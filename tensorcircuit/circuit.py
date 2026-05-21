@@ -128,7 +128,6 @@ class Circuit(BaseCircuit):
         # self._qcode += str(self._nqubits) + "\n"
         self._qir: List[Dict[str, Any]] = []
         self._extra_qir: List[Dict[str, Any]] = []
-        self._measure_counter = 0
 
     def replace_mps_inputs(self, mps_inputs: QuOperator) -> None:
         """
@@ -187,11 +186,6 @@ class Circuit(BaseCircuit):
 
     # TODO(@refraction-ray): add noise support in IR
     # TODO(@refraction-ray): unify mid measure to basecircuit
-
-    def _new_detector_work_circuit(self) -> BaseCircuit:
-        from .densitymatrix import DMCircuit2
-
-        return DMCircuit2(self._nqubits)
 
     def mid_measurement(self, index: int, keep: int = 0) -> Tensor:
         """
@@ -460,21 +454,7 @@ class Circuit(BaseCircuit):
                 for k in kraus
             ]
             kraus = [
-                k
-                / backend.cast(
-                    backend.where(
-                        p
-                        > backend.cast(
-                            backend.convert_to_tensor(0.0), p.dtype  # type: ignore
-                        ),
-                        backend.sqrt(p),
-                        backend.cast(
-                            backend.convert_to_tensor(1.0), p.dtype  # type: ignore
-                        ),
-                    ),
-                    dtypestr,
-                )
-                for k, p in zip(kraus, prob)
+                k / backend.cast(backend.sqrt(p), dtypestr) for k, p in zip(kraus, prob)
             ]
         if not backend.is_tensor(prob):
             prob = backend.convert_to_tensor(prob)
@@ -686,22 +666,11 @@ class Circuit(BaseCircuit):
             name: Optional[str] = None,
             **vars: float,
         ) -> None:
-            channel_parameters = dict(vars)
             kraus = krausf(**vars)
-            if name is None:
-                name = getattr(kraus, "name", None)
-            if name is None:
-                name = getattr(krausf, "__name__", "channel").replace("channel", "")
             if not is_unitary:
                 self.apply_general_kraus(kraus, *index, status=status, name=name)
             else:
                 self.unitary_kraus(kraus, *index, status=status, name=name)
-            if len(self._qir) > 0:
-                self._qir[-1]["name"] = name
-                self._qir[-1]["is_channel"] = True
-                self._qir[-1]["channel_f"] = krausf
-                self._qir[-1]["channel_parameters"] = channel_parameters
-                self._qir[-1]["channel_unitary"] = is_unitary
 
         return apply
 

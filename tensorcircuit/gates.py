@@ -229,9 +229,10 @@ def num_to_tensor(*num: Union[float, Tensor], dtype: Optional[str] = None) -> An
     :type num: Union[float, Tensor]
     :param dtype: dtype of the output Tensors
     :type dtype: str, optional
-    :return: List of Tensors or a single Tensor
-    :rtype: Union[List[Tensor], Tensor]
+    :return: List of Tensors
+    :rtype: List[Tensor]
     """
+    # TODO(@YHPeter): fix __doc__ for same function with different names
 
     l = []
     if dtype is None:
@@ -254,12 +255,6 @@ def gate_wrapper(m: Tensor, n: Optional[str] = None) -> Gate:
         n = "unknowngate"
     m = m.astype(npdtype)
     return Gate(deepcopy(m), name=n)
-
-
-def _cast_registered_gate(m: Tensor) -> Tensor:
-    if isinstance(m, np.ndarray):
-        return np.asarray(m, dtype=npdtype)
-    return m
 
 
 class GateF:
@@ -399,7 +394,6 @@ def meta_gate() -> None:
                 m = np.reshape(m, (2, 2, 2, 2))
             if m.shape[0] == 8:
                 m = np.reshape(m, (2, 2, 2, 2, 2, 2))
-            m = _cast_registered_gate(m)
             # m = m.astype(npdtype)
             # not enough for new mechanism: register method on class instead of instance
             # temp = partial(gate_wrapper, m, n)

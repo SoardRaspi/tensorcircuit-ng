@@ -182,6 +182,7 @@ class MPSCircuit(AbstractCircuit):
 
         self._nqubits = nqubits
         self._fidelity = 1.0
+        self._eps_trunc = []
         self._qir: List[Dict[str, Any]] = []
         self._extra_qir: List[Dict[str, Any]] = []
 
@@ -290,10 +291,12 @@ class MPSCircuit(AbstractCircuit):
             gate.tensor,
             index1,
             index2,
+            # max_singular_values=5,
             center_position=center_position,
             **split,
         )
         self._fidelity *= 1 - backend.real(backend.sum(err**2))
+        self._eps_trunc.append(backend.sum(err**2))
 
     def consecutive_swap(
         self,

@@ -94,17 +94,16 @@ def _merge_extra_qir(
 ) -> List[Dict[str, Any]]:
     nqir = []
     # caution on the same pos!
-    inds: Dict[Union[int, float], List[Dict[str, Any]]] = {}
+    inds: Dict[int, List[Dict[str, Any]]] = {}
     for d in extra_qir:
-        pos = d.get("pos", len(qir))
-        if pos not in inds:
-            inds[pos] = []
-        inds[pos].append(d)
+        if d["pos"] not in inds:
+            inds[d["pos"]] = []
+        inds[d["pos"]].append(d)
     for i, q in enumerate(qir):
         if i in inds:
             nqir += inds[i]
         nqir.append(q)
-    for k in sorted(inds):
+    for k in inds:
         if k >= len(qir):
             nqir += inds[k]
     return nqir
@@ -167,8 +166,6 @@ def qir2cirq(
     qbits = cirq.LineQubit.range(n)
     cmd = []
     for gate_info in qir:
-        if gate_info.get("is_channel", False):
-            continue
         index = [qbits[i] for i in gate_info["index"]]
         gate_name = str(gate_info["gatef"])
         if "parameters" in gate_info:
@@ -260,8 +257,6 @@ def qir2qiskit(
         qiskit_circ.initialize(initialization)
     measure_cbit = 0
     for gate_info in qir:
-        if gate_info.get("is_channel", False):
-            continue
         index = gate_info["index"]
         gate_name = str(gate_info["gatef"])
         qis_name = gate_name
@@ -656,8 +651,6 @@ def qir2json(
     qir = deepcopy(qir)
     tcqasm = []
     for r in qir:
-        if r.get("is_channel", False):
-            continue
         if r["mpo"] is True:
             nm = backend.reshapem(r["gate"].eval())
         else:
@@ -799,216 +792,6 @@ def qiskit_from_qasm_str_ordered_measure(qasm_str: str) -> Any:
     for qid, cid in measure_sequence:
         qc.measure(qid, cid)
     return qc
-
-
-def stim2tc(
-    stim_circuit: Any,
-    n: Optional[int] = None,
-    is_dm: bool = False,
-    circuit_constructor: Any = None,
-    circuit_params: Optional[Dict[str, Any]] = None,
-) -> Any:
-    """
-    Generate a tensorcircuit circuit from the stim circuit.
-
-    :param stim_circuit: A quantum circuit in stim
-    :type stim_circuit: stim.Circuit
-    :param n: # of qubits, defaults to None
-    :type n: Optional[int], optional
-    :param is_dm: whether to use DMCircuit, defaults to False
-    :type is_dm: bool, optional
-    :param circuit_constructor: _description_, defaults to None
-    :type circuit_constructor: Any, optional
-    :param circuit_params: _description_, defaults to None
-    :type circuit_params: Optional[Dict[str, Any]], optional
-    :return: _description|
-    :rtype: Any
-    """
-    if circuit_constructor is not None:
-        Circ = circuit_constructor
-    elif is_dm:
-        Circ = DMCircuit2
-    else:
-        Circ = Circuit
-
-    if n is None:
-        n = stim_circuit.num_qubits
-
-    if circuit_params is None:
-        circuit_params = {}
-    if "nqubits" not in circuit_params:
-        circuit_params["nqubits"] = n
-
-    c = Circ(**circuit_params)
-
-    for instruction in stim_circuit.flattened():
-        name = instruction.name
-        targets = [t.value for t in instruction.targets_copy()]
-        args = instruction.gate_args_copy()
-
-        # Metadata/Skip
-        if name in [
-            "QUBIT_COORDS",
-            "SHIFT_COORDS",
-            "I_ERROR",
-            "TICK",
-            "OBSERVABLE_INCLUDE",
-        ]:
-            continue
-        if name == "DETECTOR":
-            c.detector_instruction(targets, coords=args if args else None)
-            continue
-
-        # Standard Gates
-        if name in ["I", "X", "Y", "Z", "H", "S", "T"]:
-            for q in targets:
-                getattr(c, name.lower())(q)
-            continue
-        if name in ["S_DAG", "T_DAG"]:
-            for q in targets:
-                getattr(c, name.lower().replace("_", ""))(q)
-            continue
-        if name in ["CX", "CNOT", "CY", "CZ", "SWAP"]:
-            f = "cx" if name == "CNOT" else name.lower()
-            for i in range(0, len(targets), 2):
-                getattr(c, f)(targets[i], targets[i + 1])
-            continue
-        if name == "ISWAP":
-            for i in range(0, len(targets), 2):
-                c.iswap(targets[i], targets[i + 1])
-            continue
-        if name == "ISWAP_DAG":
-            for i in range(0, len(targets), 2):
-                c.iswap(targets[i], targets[i + 1], theta=-1.0)
-            continue
-
-        # SQRT Gates (X, Y, Z, XX, YY, ZZ)
-        if name == "SQRT_X":
-            for q in targets:
-                c.rx(q, theta=np.pi / 2)
-            continue
-        if name == "SQRT_X_DAG":
-            for q in targets:
-                c.rx(q, theta=-np.pi / 2)
-            continue
-        if name == "SQRT_Y":
-            for q in targets:
-                c.ry(q, theta=np.pi / 2)
-            continue
-        if name == "SQRT_Y_DAG":
-            for q in targets:
-                c.ry(q, theta=-np.pi / 2)
-            continue
-        # SQRT_Z is S, SQRT_Z_DAG is S_DAG
-        if name == "SQRT_XX":
-            for i in range(0, len(targets), 2):
-                c.rxx(targets[i], targets[i + 1], theta=np.pi / 2)
-            continue
-        if name == "SQRT_YY":
-            for i in range(0, len(targets), 2):
-                c.ryy(targets[i], targets[i + 1], theta=np.pi / 2)
-            continue
-        if name == "SQRT_ZZ":
-            for i in range(0, len(targets), 2):
-                c.rzz(targets[i], targets[i + 1], theta=np.pi / 2)
-            continue
-
-        # Measurement & Reset (Z-basis)
-        if name in ["M", "MEASURE", "MZ"]:
-            for q in targets:
-                c.measure_instruction(q)
-            continue
-        if name in ["R", "RZ"]:
-            for q in targets:
-                c.reset_instruction(q)
-            continue
-        if name in ["MR", "MRZ"]:
-            for q in targets:
-                c.measure_instruction(q)
-                c.reset_instruction(q)
-            continue
-
-        # X-basis M, R, MR
-        if name == "MX":
-            for q in targets:
-                c.h(q)
-                c.measure_instruction(q)
-                c.h(q)
-            continue
-        if name == "RX":
-            for q in targets:
-                c.h(q)
-                c.reset_instruction(q)
-                c.h(q)
-            continue
-        if name == "MRX":
-            for q in targets:
-                c.h(q)
-                c.measure_instruction(q)
-                c.reset_instruction(q)
-                c.h(q)
-            continue
-
-        # Y-basis M, R, MR
-        if name == "MY":
-            for q in targets:
-                c.sdg(q)
-                c.h(q)
-                c.measure_instruction(q)
-                c.h(q)
-                c.s(q)
-            continue
-        if name == "RY":
-            for q in targets:
-                c.sdg(q)
-                c.h(q)
-                c.reset_instruction(q)
-                c.h(q)
-                c.s(q)
-            continue
-        if name == "MRY":
-            for q in targets:
-                c.sdg(q)
-                c.h(q)
-                c.measure_instruction(q)
-                c.reset_instruction(q)
-                c.h(q)
-                c.s(q)
-            continue
-
-        # Noise Channels
-        if name == "DEPOLARIZE1":
-            p = args[0]
-            for q in targets:
-                c.depolarizing(q, px=p / 3.0, py=p / 3.0, pz=p / 3.0)
-            continue
-        if name == "DEPOLARIZE2":
-            p = args[0]
-            for i in range(0, len(targets), 2):
-                c.isotropicdepolarizing(targets[i], targets[i + 1], p=p, num_qubits=2)
-            continue
-        if name == "X_ERROR":
-            for q in targets:
-                c.depolarizing(q, px=args[0], py=0.0, pz=0.0)
-            continue
-        if name == "Y_ERROR":
-            for q in targets:
-                c.depolarizing(q, px=0.0, py=args[0], pz=0.0)
-            continue
-        if name == "Z_ERROR":
-            for q in targets:
-                c.depolarizing(q, px=0.0, py=0.0, pz=args[0])
-            continue
-        if name == "PAULI_CHANNEL_1":
-            for q in targets:
-                c.depolarizing(q, px=args[0], py=args[1], pz=args[2])
-            continue
-
-        logger.warning(
-            f"Stim instruction {name} not supported in translation, skipping"
-        )
-
-    return c
 
 
 def cirq2tc(

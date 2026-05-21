@@ -39,6 +39,8 @@ class FiniteMPS(tn.FiniteMPS):  # type: ignore
         max_truncation_err: Optional[float] = None,
         center_position: Optional[int] = None,
         relative: bool = False,
+        truncation_mode: Optional[str] = 'highest',
+        svd_type: Optional[int] = 0,  # 0: normal SVD, 1: SVD custom
     ) -> Tensor:
         """
         Apply a two-site gate to an MPS. This routine will in general destroy
@@ -119,6 +121,7 @@ class FiniteMPS(tn.FiniteMPS):  # type: ignore
             )
 
         use_svd = (max_truncation_err is not None) or (max_singular_values is not None)
+        # print("inside the FiniteMPS use_svd flag:", use_svd, max_truncation_err, max_singular_values)
         gate = self.backend.convert_to_tensor(gate)
         tensor = ncon.ncon(
             [self.tensors[site1], self.tensors[site2], gate],
@@ -137,13 +140,23 @@ class FiniteMPS(tn.FiniteMPS):  # type: ignore
         if center_position is None:
             center_position = site1
         if use_svd:
-            U, S, V, tw = self.backend.svd(
-                tensor,
-                pivot_axis=2,
-                max_singular_values=max_singular_values,
-                max_truncation_error=max_truncation_err,
-                relative=relative,
-            )
+            if svd_type == 0:
+                U, S, V, tw = self.backend.svd(
+                    tensor,
+                    pivot_axis=2,
+                    max_singular_values=max_singular_values,
+                    max_truncation_error=max_truncation_err,
+                    relative=relative,
+                )
+            else:
+                U, S, V, tw = self.backend.svd_multi_strat(
+                    tensor,
+                    pivot_axis=2,
+                    max_singular_values=max_singular_values,
+                    max_truncation_error=max_truncation_err,
+                    relative=relative,
+                    truncation_mode=truncation_mode
+                )
 
             # Note: fix the center position bug here
             if center_position == site2:
