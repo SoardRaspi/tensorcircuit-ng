@@ -9,8 +9,8 @@ developed during a research internship at Chennai Mathematical Institute (CMI), 
 - Added `truncation_mode` parameter to `apply_two_site_gate`
 
 ## Installation
-pip install git+https://github.com/YOUR_USERNAME/tensorcircuit-ng.git@cmi-internship
-pip install git+https://github.com/YOUR_USERNAME/TensorNetwork.git@cmi-internship
+pip install git+https://github.com/SoardRaspi/tensorcircuit-ng.git@cmi-internship
+pip install git+https://github.com/SoardRaspi/TensorNetwork.git@cmi-internship
 
 ## Original Library
 https://github.com/tensorcircuit/tensorcircuit-ng
