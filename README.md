@@ -1,3 +1,22 @@
+# CMI Internship Fork
+
+This is a modified version of [tensorcircuit-ng](https://github.com/tensorcircuit/tensorcircuit-ng) 
+developed during a research internship at Chennai Mathematical Institute (CMI), May-July 2026.
+
+## Modifications
+- Added multi-strategy SVD truncation modes (`highest`, `lowest`, `middle`, `both`) in MPS circuits
+- Added per-gate truncation error tracking via `_eps_trunc`
+- Added `truncation_mode` parameter to `apply_two_site_gate`
+
+## Installation
+pip install git+https://github.com/YOUR_USERNAME/tensorcircuit-ng.git@cmi-internship
+pip install git+https://github.com/YOUR_USERNAME/TensorNetwork.git@cmi-internship
+
+## Original Library
+https://github.com/tensorcircuit/tensorcircuit-ng
+
+
+
 <p align="center">
   <a href="https://github.com/tensorcircuit/tensorcircuit-ng">
     <img width=90% src="docs/source/statics/logong.png">
